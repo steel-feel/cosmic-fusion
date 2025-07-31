@@ -12,6 +12,7 @@ use sylvia::cw_std::{Addr, BankMsg, Coin, Response, SubMsg};
 use sylvia::types::{CustomMsg, CustomQuery};
 
 pub struct EscrowDest<E, Q> {
+    pub deployed_at: Item<u64>,
     pub rescue_delay: Item<u64>,
     pub immutables: Item<Immutables>,
     _phantom: std::marker::PhantomData<(E, Q)>,
@@ -49,6 +50,7 @@ where
     //TODO: check if can pass anything in args
     pub const fn new() -> Self {
         Self {
+            deployed_at: Item::new("deployed_at"),
             rescue_delay: Item::new("rescue_delay"),
             immutables: Item::new("immutables"),
             _phantom: std::marker::PhantomData,
@@ -77,6 +79,7 @@ where
         let order_hash = hex::decode(&data.order_hash)
             .map_err(|e| sylvia::cw_std::StdError::generic_err(e.to_string()))?;
 
+        self.deployed_at.save(ctx.deps.storage, &ctx.env.block.time.seconds())?;
         self.rescue_delay
             .save(ctx.deps.storage, &data.rescue_delay)?;
         self.immutables.save(
@@ -181,13 +184,15 @@ where
      fn rescue_funds(&self, ctx: ExecCtx<Q> ) -> Result<Response<E>, ContractError> { 
         let immutables = self.immutables.load(ctx.deps.storage)?;
         let rescue_delay = self.rescue_delay.load(ctx.deps.storage)?;
+        let deployed_at = self.deployed_at.load(ctx.deps.storage)?;
+        
         // Check if caller is taker
         if ctx.info.sender != immutables.taker {
             return Err(ContractError::OnlyTaker);
         }
 
         let current_time_in_secs = ctx.env.block.time.seconds();
-        let rescue_start = immutables.timelocks.src_withdrawal + rescue_delay;
+        let rescue_start = deployed_at + rescue_delay;
         if only_after(current_time_in_secs, rescue_start) {
             return Err(ContractError::RescueTimeLimit);
         }

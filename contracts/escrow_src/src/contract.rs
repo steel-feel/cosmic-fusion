@@ -34,7 +34,9 @@ pub fn instantiate(
         .add_attribute("method", "instantiate")
         .add_attribute("owner", info.sender)
         .add_attribute("count", msg.count.to_string()))
-}
+
+
+    }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
@@ -126,7 +128,7 @@ pub mod query {
 pub fn reply(_deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
     match msg.id {
         REPLY_ID =>  {
-            Ok(Response::new().add_attribute("jeete", "raaho!"))  
+            Ok(Response::new())  
         },
         _ => Ok(Response::new())  
         
