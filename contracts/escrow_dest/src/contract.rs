@@ -100,6 +100,7 @@ where
     #[sv::msg(exec)]
     fn withdraw(&self, ctx: ExecCtx<Q>, msg: WithdrawMsg) -> Result<Response<E>, ContractError> {
         let immutables = self.immutables.load(ctx.deps.storage)?;
+        let deployed_at = self.deployed_at.load(ctx.deps.storage)?;
 
         // Check if caller is taker
         if ctx.info.sender != immutables.taker {
@@ -107,10 +108,10 @@ where
         }
         // Check timelock conditions
         let current_time_in_secs = ctx.env.block.time.seconds();
-        if only_after(current_time_in_secs, immutables.timelocks.withdrawal) {
+        if only_after(current_time_in_secs, deployed_at + immutables.timelocks.withdrawal) {
             return Err(ContractError::DestWithrawTimeLimit);
         }
-        if only_before(current_time_in_secs, immutables.timelocks.dest_cancellation) {
+        if only_before(current_time_in_secs, deployed_at + immutables.timelocks.dest_cancellation) {
             return Err(ContractError::DestCancelTimeLimit);
         }
         //Check secret hash
@@ -133,14 +134,15 @@ where
         msg: WithdrawMsg,
     ) -> Result<Response<E>, ContractError> {
         let immutables = self.immutables.load(ctx.deps.storage)?;
+        let deployed_at = self.deployed_at.load(ctx.deps.storage)?;
         // Check timelock conditions
         let current_time_in_secs = ctx.env.block.time.seconds();
 
-        if only_after(current_time_in_secs, immutables.timelocks.public_withdrawal) {
+        if only_after(current_time_in_secs, deployed_at + immutables.timelocks.public_withdrawal) {
             return Err(ContractError::DestWithrawTimeLimit);
         }
 
-        if only_before(current_time_in_secs, immutables.timelocks.dest_cancellation) {
+        if only_before(current_time_in_secs, deployed_at + immutables.timelocks.dest_cancellation) {
             return Err(ContractError::DestCancelTimeLimit);
         }
 
@@ -160,14 +162,14 @@ where
     #[sv::msg(exec)]
     fn cancel(&self, ctx: ExecCtx<Q> ) -> Result<Response<E>, ContractError> {
         let immutables = self.immutables.load(ctx.deps.storage)?;
-
+        let deployed_at = self.deployed_at.load(ctx.deps.storage)?;
         // Check if caller is taker
         if ctx.info.sender != immutables.taker {
             return Err(ContractError::OnlyTaker);
         }
 
         let current_time_in_secs = ctx.env.block.time.seconds();
-        if only_after(current_time_in_secs, immutables.timelocks.dest_cancellation) {
+        if only_after(current_time_in_secs, deployed_at + immutables.timelocks.dest_cancellation) {
             return Err(ContractError::DestCancelTimeLimit);
         }
 
