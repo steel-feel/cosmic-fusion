@@ -3,15 +3,21 @@ use cosmwasm_std::{Addr, AnyMsg, Coin, CosmosMsg, StdResult};
 use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
 
+use crate::state::Timelocks;
+
 #[cw_serde]
 pub struct InstantiateMsg {
-    pub count: i32,
+    pub rescue_delay: u64,
+    pub order_hash: String,
+    pub hashlock: String,
+    pub maker: Addr,
+    pub taker: Addr,
+    pub token: Coin,
+    pub timelocks: Timelocks,
 }
 
 #[cw_serde]
 pub enum ExecuteMsg {
-    Increment {},
-    Reset { count: i32 },
     PullFunds(PullFundsMsg),
 }
 
@@ -19,14 +25,21 @@ pub enum ExecuteMsg {
 #[derive(QueryResponses)]
 pub enum QueryMsg {
     // GetCount returns the current count as a json-encoded number
-    #[returns(GetCountResponse)]
-    GetCount {},
+    #[returns(GetOrderDetailsResponse)]
+    OrderDetails {},
 }
 
 // We define a custom struct for each query response
 #[cw_serde]
-pub struct GetCountResponse {
-    pub count: i32,
+pub struct GetOrderDetailsResponse {
+    pub deployed_at: u64 ,
+    pub rescue_delay: u64,
+    pub order_hash: String,
+    pub hashlock: String,
+    pub maker: Addr,
+    pub taker: Addr,
+    pub token: Coin,
+    pub timelocks: Timelocks,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, JsonSchema)]
