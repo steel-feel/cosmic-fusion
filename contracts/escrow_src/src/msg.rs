@@ -34,6 +34,7 @@ pub struct WithdrawMsg {
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, JsonSchema)]
 pub struct WithdrawToMsg {
     pub secret: String,
+    pub tagret: Addr,
 }
 
 #[cw_serde]

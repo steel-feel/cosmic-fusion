@@ -24,5 +24,11 @@ pub enum ContractError {
     SrcCancelTimeLimit,
 
     #[error("Rescue time has passed")]
-    RescueTimeLimit
+    RescueTimeLimit,
+
+    #[error("Error while withdraw token from escrow")]
+    WithdrawError,
+
+    #[error("Error while deposit token to escrow")]
+    DepositError
 }
