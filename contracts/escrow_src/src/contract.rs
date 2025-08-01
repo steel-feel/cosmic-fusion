@@ -57,32 +57,13 @@ pub fn instantiate(
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     STATE.save(deps.storage, &state)?;
     IMMUTABLES.save(deps.storage, &immutables)?;
-
-    // let amount = ProtoCoin {
-    //     denom: immutables.token.denom,
-    //     amount: immutables.token.amount.to_string(),
-    // };
-
-    // let bank_send_msg = MsgSend {
-    //     amount: vec![amount],
-    //     from_address: immutables.maker.to_string(),
-    //     to_address: _env.contract.address.to_string(),
-    // };
-
-    // // let exec_msg
-    // let order_bytes = encode_bytes_message(&bank_send_msg).unwrap();
-    // let msg_exec = MsgExec {
-    //     grantee: _env.contract.address.to_string(),
-    //     msgs: vec![Any {
-    //         type_url: MSG_BANK_SEND.to_string(), //"/cosmos.bank.v1beta1.MsgSend" ,
-    //         value: order_bytes,
-    //     }],
-    // };
-
-    // let submessage = SubMsg::reply_on_success(
-    //     create_stargate_msg(MSG_EXEC, msg_exec.encode_to_vec()).unwrap(),
-    //     REPLY_ID,
-    // );
+        /*
+        *
+        *Note: Can not do pulling of funds here since 
+        * address of escrow_src is not known at order, 
+        * instantiate2 (create2) requires relayer address to calculate the address of escrow_src
+        *
+        */
 
     Ok(Response::new())
 
@@ -172,81 +153,4 @@ pub fn reply(_deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, Contract
         REPLY_ID => Ok(Response::new()),
         _ => Ok(Response::new()),
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use sha3::{Digest, Keccak256};
-    use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
-    use cosmwasm_std::{coins, from_json, Addr, Coin};
-    use crate::state::Timelocks;
-
-
-    #[test]
-    fn proper_initialization() {
-        // let mut deps = mock_dependencies();
-      
-        // let hashlock = {
-        //     let mut hasher = Keccak256::new();
-        //     hasher.update(b"secret");
-        //     hex::encode(&hasher.finalize())
-        // };
-
-        // let order_hash = {
-        //     let mut hasher = Keccak256::new();
-        //     hasher.update(b"orderhash");
-        //     hex::encode(&hasher.finalize()) //.to_ascii_lowercase()
-        // };
-       
-        // let msg = InstantiateMsg { 
-        //     rescue_delay: 1,
-        //     hashlock,
-        //     order_hash,
-        //     maker: Addr::unchecked("maker"),
-        //     taker: Addr::unchecked("taker"),
-        //     timelocks: Timelocks {
-        //         withdrawal: 1000,
-        //         public_withdrawal: 2000,
-        //         dest_cancellation: 3000,
-        //         src_cancellation: 3000,
-        //         src_withdrawal: 5000,
-        //     },
-        //     token: Coin::new(1000u32, "stake"),
-        //  };
-        // let sender = Addr::unchecked("taker");
-        // let info = message_info( &sender, &coins(0, "stake"));
-
-        // // we can just call .unwrap() to assert this was a success
-        // let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
-        // assert_eq!(0, res.messages.len());
-
-
-
-        // it worked, let's query the state
-        // let res = query(deps.as_ref(), mock_env(), QueryMsg::GetCount {}).unwrap();
-        // let value: GetCountResponse = from_json(&res).unwrap();
-        // assert_eq!(17, value.count);
-    }
-
-    #[test]
-    fn increment() {
-        let mut deps = mock_dependencies();
-
-        // let msg = InstantiateMsg { count: 17 };
-        // let info = mock_info("creator", &coins(2, "token"));
-        // let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
-
-        // // beneficiary can release it
-        // let info = mock_info("anyone", &coins(2, "token"));
-        // let msg = ExecuteMsg::Increment {};
-        // let _res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
-
-        // // should increase counter by 1
-        // let res = query(deps.as_ref(), mock_env(), QueryMsg::GetCount {}).unwrap();
-        // let value: GetCountResponse = from_json(&res).unwrap();
-        // assert_eq!(18, value.count);
-    }
-
-
 }

@@ -73,7 +73,7 @@ mod tests {
             hasher.update(b"orderhash");
             hex::encode(&hasher.finalize()) //.to_ascii_lowercase()
         };
-        //Fetch the address of escrow_src for instantiate2 (create2)
+      
         // let code_info_response = app.wrap().query_wasm_code_info(cw_template_id).unwrap();
 
         // let contract_addr = instantiate2_address(
