@@ -74,14 +74,6 @@ mod tests {
             hex::encode(&hasher.finalize()) //.to_ascii_lowercase()
         };
       
-        // let code_info_response = app.wrap().query_wasm_code_info(cw_template_id).unwrap();
-
-        // let contract_addr = instantiate2_address(
-        //     code_info_response.checksum.as_slice(),
-        //     &app.api().addr_canonicalize(maker.as_str()).unwrap(),
-        //     order_hash.as_bytes(),
-        // )
-        // .unwrap();
 
         let hashlock = {
             let mut hasher = Keccak256::new();
@@ -123,52 +115,64 @@ mod tests {
     * MsgAuthz Bank SendAuthorization is not supported yet by multi-test
     *
     */
-    //     let bank_spend_auth =  SendAuthorization{
-    //         allow_list: vec![maker.to_string()],
-    //         spend_limit: vec![InjectiveCoin {
-    //             amount: String::from("1"),
-    //             denom: String::from("stake"),
-    //         }],
-    //     };
+    /* 
+    // ----------------------- D3AD C0DE -----------------------
+        let code_info_response = app.wrap().query_wasm_code_info(cw_template_id).unwrap();
 
-    //     let authorization = Any {
-    //         type_url: "/cosmos.bank.v1beta1.SendAuthorization".to_string(),
-    //         value: bank_spend_auth.encode_to_vec(),
-    //     };
+        let contract_addr = instantiate2_address(
+            code_info_response.checksum.as_slice(),
+            &app.api().addr_canonicalize(maker.as_str()).unwrap(),
+            order_hash.as_bytes(),
+        )
+        .unwrap();
+        let bank_spend_auth =  SendAuthorization{
+            allow_list: vec![maker.to_string()],
+            spend_limit: vec![InjectiveCoin {
+                amount: String::from("1"),
+                denom: String::from("stake"),
+            }],
+        };
 
-    //     let msg_grant = MsgGrant {
-    //         granter: maker.to_string(),
-    //         grantee: cw_template_contract_addr.to_string(),
-    //         grant: Some(Grant {
-    //             expiration: None,
-    //             authorization: Some(authorization),
-    //         }),
-    //     };
+        let authorization = Any {
+            type_url: "/cosmos.bank.v1beta1.SendAuthorization".to_string(),
+            value: bank_spend_auth.encode_to_vec(),
+        };
 
-    //     let cosmos_msg_grant = CosmosMsg::Any(AnyMsg {
-    //         type_url: "/cosmos.authz.v1beta1.MsgGrant".to_string(),
-    //         value: msg_grant.into(),
-    //     });
+        let msg_grant = MsgGrant {
+            granter: maker.to_string(),
+            grantee: cw_template_contract_addr.to_string(),
+            grant: Some(Grant {
+                expiration: None,
+                authorization: Some(authorization),
+            }),
+        };
 
-    //    let err = app.execute(maker.clone(), cosmos_msg_grant).unwrap_err();
+        let cosmos_msg_grant = CosmosMsg::Any(AnyMsg {
+            type_url: "/cosmos.authz.v1beta1.MsgGrant".to_string(),
+            value: msg_grant.into(),
+        });
 
-    //     println!(" hellor there {:?}" , err.to_string() );
+       let err = app.execute(maker.clone(), cosmos_msg_grant).unwrap_err();
+
+        println!(" hellor there {:?}" , err.to_string() );
 
       
 
-    //     let pull_funds_msg = ExecuteMsg::PullFunds(PullFundsMsg {
-    //         from: maker,
-    //         amount: Coin {
-    //             denom: "stake".to_string(),
-    //             amount: Uint128::from_str("1").unwrap(),
-    //         },
-    //     });
+        let pull_funds_msg = ExecuteMsg::PullFunds(PullFundsMsg {
+            from: maker,
+            amount: Coin {
+                denom: "stake".to_string(),
+                amount: Uint128::from_str("1").unwrap(),
+            },
+        });
 
-    //     let cw_msg = cw_template_contract.call(pull_funds_msg).unwrap();
+        let cw_msg = cw_template_contract.call(pull_funds_msg).unwrap();
 
-        // app.execute(taker, cw_msg);
+        app.execute(taker, cw_msg);
 
-        // app.router().querier(, storage, block_info)
+        app.router().querier(, storage, block_info)
+          // ----------------------- END -----------------------
+        */
 
         (app, cw_template_contract)
     }

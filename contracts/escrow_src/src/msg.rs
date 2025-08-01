@@ -19,6 +19,21 @@ pub struct InstantiateMsg {
 #[cw_serde]
 pub enum ExecuteMsg {
     PullFunds(PullFundsMsg),
+    Withdraw(WithdrawMsg),
+    WithdrawTo(WithdrawToMsg),
+    PublicWithdraw(WithdrawMsg),
+    Cancel(),
+    PublicCancel(),
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, JsonSchema)]
+pub struct WithdrawMsg {
+    pub secret: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, JsonSchema)]
+pub struct WithdrawToMsg {
+    pub secret: String,
 }
 
 #[cw_serde]

@@ -78,18 +78,28 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::PullFunds(msg) => execute::pull_funds(deps, _env, info, msg),
+        ExecuteMsg::Withdraw(msg) => execute::withdraw(deps, _env, info, msg),
+    
     }
 }
 
 pub mod execute {
+    use cosmwasm_std::{Addr, BankMsg, Coin};
+
+    use crate::{helpers::{only_after, only_before, only_valid_secret}, msg::WithdrawMsg};
+
     use super::*;
 
     pub fn pull_funds(
-        _deps: DepsMut,
+        deps: DepsMut,
         _env: Env,
         _info: MessageInfo,
         msg: PullFundsMsg,
     ) -> Result<Response, ContractError> {
+        let mut state = STATE.load(deps.storage)?;
+        state.deployed_at = _env.block.time.seconds();
+       
+
         let giver = msg.from;
         let amount = ProtoCoin {
             denom: msg.amount.denom,
@@ -117,8 +127,47 @@ pub mod execute {
             REPLY_ID,
         );
 
+        STATE.save(deps.storage, &state)?;
+
         Ok(Response::new().add_submessage(submessage))
     }
+
+    pub fn withdraw( deps: DepsMut, env: Env,  info: MessageInfo, msg: WithdrawMsg) -> Result<Response, ContractError> {
+        let immutables = IMMUTABLES.load(deps.storage)?;
+        let current_time_in_secs = env.block.time.seconds();
+
+        if immutables.taker != info.sender {
+            return Err(ContractError::OnlyTaker);
+        }
+
+        if only_after(current_time_in_secs, immutables.timelocks.src_withdrawal) {
+            return Err(ContractError::SrcWithrawTimeLimit);
+        }
+
+        if only_before(current_time_in_secs, immutables.timelocks.src_cancellation) {
+            return Err(ContractError::SrcCancelTimeLimit);
+        }
+
+        only_valid_secret( msg.secret, immutables.hashlock )? ;
+
+       let sub_msg = _withdraw_to( immutables.taker, immutables.token );
+        
+        Ok(Response::new().add_submessage(sub_msg))
+    }
+
+    
+
+
+
+    fn _withdraw_to(target: Addr, amount: Coin ) -> SubMsg {
+        let msg = BankMsg::Send {
+            to_address: target.into(),
+            amount: vec![amount],
+        };
+        SubMsg::reply_never(msg)
+    }
+
+
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

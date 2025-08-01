@@ -83,3 +83,13 @@ that have been published.
 Please replace this README file with information about your specific project. You can keep
 the `Developing.md` and `Publishing.md` files as useful references, but please set some
 proper description in the README.
+
+## User Flow
+
+1) User order
+2) Resolver deployed escrow 
+3) User checks escrow details and approves the funds for escrow 
+4) Escrow pulls funds and sets deployed_at
+5) User checks for escrow details (specially deplayed_At)
+6) User shares secret 
+7) Rest of ceremony continues. . . . .
