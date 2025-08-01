@@ -26,7 +26,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const MSG_EXEC: &str = "/cosmos.authz.v1beta1.MsgExec";
 pub const MSG_BANK_SEND: &str = "/cosmos.bank.v1beta1.MsgSend";
 pub const REPLY_ID: u64 = 1;
-pub const REPLY_WITHDRAW_ERR : u64 = 2;
+pub const REPLY_WITHDRAW_ERR: u64 = 2;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -58,37 +58,41 @@ pub fn instantiate(
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     STATE.save(deps.storage, &state)?;
     IMMUTABLES.save(deps.storage, &immutables)?;
-        /*
-        *
-        *Note: Can not do pulling of funds here since 
-        * address of escrow_src is not known at order, 
-        * instantiate2 (create2) requires relayer address to calculate the address of escrow_src
-        *
-        */
+    /*
+     *
+     *Note: Can not do pulling of funds here since
+     * address of escrow_src is not known at order,
+     * instantiate2 (create2) requires relayer address to calculate the address of escrow_src
+     *
+     */
 
     Ok(Response::new())
-
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::PullFunds(msg) => execute::pull_funds(deps, _env, info, msg),
-        ExecuteMsg::Withdraw(msg) => execute::withdraw(deps, _env, info, msg),
-        ExecuteMsg::WithdrawTo(msg) => execute::withdraw_to(deps, _env, info, msg),
-        
+        ExecuteMsg::PullFunds(msg) => execute::pull_funds(deps, env, info, msg),
+        ExecuteMsg::Withdraw(msg) => execute::withdraw(deps, env, info, msg),
+        ExecuteMsg::WithdrawTo(msg) => execute::withdraw_to(deps, env, info, msg),
+        ExecuteMsg::PublicWithdraw(msg) => execute::public_withdraw(deps, env, msg),
+        ExecuteMsg::Cancel() => execute::cancel(deps, env, info),
+        ExecuteMsg::PublicCancel() => execute::public_cancel(deps, env),
     }
 }
 
 pub mod execute {
-    use cosmwasm_std::{Addr, BankMsg, Coin};
+    use cosmwasm_std::{Addr, BankMsg, Coin, Event};
 
-    use crate::{helpers::{only_after, only_before, only_valid_secret}, msg:: {WithdrawMsg,WithdrawToMsg }};
+    use crate::{
+        helpers::{only_after, only_before, only_valid_secret},
+        msg::{WithdrawMsg, WithdrawToMsg},
+    };
 
     use super::*;
 
@@ -100,7 +104,6 @@ pub mod execute {
     ) -> Result<Response, ContractError> {
         let mut state = STATE.load(deps.storage)?;
         state.deployed_at = _env.block.time.seconds();
-       
 
         let giver = msg.from;
         let amount = ProtoCoin {
@@ -126,15 +129,20 @@ pub mod execute {
 
         let submessage = SubMsg::reply_on_error(
             create_stargate_msg(MSG_EXEC, msg_exec.encode_to_vec()).unwrap(),
-            REPLY_ID
-             );
+            REPLY_ID,
+        );
 
         STATE.save(deps.storage, &state)?;
 
         Ok(Response::new().add_submessage(submessage))
     }
 
-    pub fn withdraw( deps: DepsMut, env: Env,  info: MessageInfo, msg: WithdrawMsg) -> Result<Response, ContractError> {
+    pub fn withdraw(
+        deps: DepsMut,
+        env: Env,
+        info: MessageInfo,
+        msg: WithdrawMsg,
+    ) -> Result<Response, ContractError> {
         let immutables = IMMUTABLES.load(deps.storage)?;
         let current_time_in_secs = env.block.time.seconds();
 
@@ -150,14 +158,19 @@ pub mod execute {
             return Err(ContractError::SrcCancelTimeLimit);
         }
 
-        only_valid_secret( msg.secret, immutables.hashlock )? ;
+        only_valid_secret(msg.secret, immutables.hashlock)?;
 
-       let sub_msg = _withdraw_to( immutables.taker, immutables.token );
-        
+        let sub_msg = _withdraw_to(immutables.taker, immutables.token);
+
         Ok(Response::new().add_submessage(sub_msg))
     }
 
-    pub fn withdraw_to(deps: DepsMut, env: Env,  info: MessageInfo, msg: WithdrawToMsg) -> Result<Response, ContractError> { 
+    pub fn withdraw_to(
+        deps: DepsMut,
+        env: Env,
+        info: MessageInfo,
+        msg: WithdrawToMsg,
+    ) -> Result<Response, ContractError> {
         let immutables = IMMUTABLES.load(deps.storage)?;
         let current_time_in_secs = env.block.time.seconds();
 
@@ -173,22 +186,81 @@ pub mod execute {
             return Err(ContractError::SrcCancelTimeLimit);
         }
 
-        only_valid_secret( msg.secret, immutables.hashlock )? ;
+        only_valid_secret(msg.secret, immutables.hashlock)?;
 
-       let sub_msg = _withdraw_to( msg.tagret, immutables.token );
-        
+        let sub_msg = _withdraw_to(msg.tagret, immutables.token);
+
         Ok(Response::new().add_submessage(sub_msg))
     }
 
-    fn _withdraw_to(target: Addr, amount: Coin ) -> SubMsg {
+    pub fn public_withdraw(
+        deps: DepsMut,
+        env: Env,
+        msg: WithdrawMsg,
+    ) -> Result<Response, ContractError> {
+        let immutables: Immutables = IMMUTABLES.load(deps.storage)?;
+        let current_time_in_secs = env.block.time.seconds();
+
+        if only_after(
+            current_time_in_secs,
+            immutables.timelocks.src_public_withdrawal,
+        ) {
+            return Err(ContractError::SrcWithrawTimeLimit);
+        }
+
+        if only_before(current_time_in_secs, immutables.timelocks.src_cancellation) {
+            return Err(ContractError::SrcCancelTimeLimit);
+        }
+        
+        only_valid_secret(msg.secret, immutables.hashlock)?;
+        let sub_msg = _withdraw_to(immutables.taker, immutables.token);
+
+        Ok(Response::new().add_submessage(sub_msg))
+        
+    }
+
+
+    pub fn cancel( deps: DepsMut, env: Env, info: MessageInfo,) -> Result<Response, ContractError>  {
+        let immutables = IMMUTABLES.load(deps.storage)?;
+        let current_time_in_secs = env.block.time.seconds();
+     
+        if immutables.taker != info.sender {
+            return Err(ContractError::OnlyTaker);
+        }
+
+        if only_after(current_time_in_secs, immutables.timelocks.src_public_cancellation) {
+            return  Err(ContractError::SrcWithrawTimeLimit);
+        }
+
+       let sub_msg = _withdraw_to(immutables.maker, immutables.token);
+
+        let event = Event::new("cancel");
+        Ok(Response::new().add_event(event).add_submessage(sub_msg) )
+    }  
+
+    pub fn public_cancel(deps: DepsMut, env: Env)  -> Result<Response, ContractError> {
+        let immutables = IMMUTABLES.load(deps.storage)?;
+        let current_time_in_secs = env.block.time.seconds();
+
+        if only_after(current_time_in_secs, immutables.timelocks.src_public_cancellation) {
+            return  Err( ContractError::SrcCancelTimeLimit );
+        }
+
+        let sub_msg = _withdraw_to(immutables.maker, immutables.token);
+
+        let event = Event::new("cancel");
+        Ok(Response::new().add_event(event).add_submessage(sub_msg) )
+
+    }
+
+
+    fn _withdraw_to(target: Addr, amount: Coin) -> SubMsg {
         let msg = BankMsg::Send {
             to_address: target.into(),
             amount: vec![amount],
         };
         SubMsg::reply_on_error(msg, REPLY_WITHDRAW_ERR)
     }
-
-
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

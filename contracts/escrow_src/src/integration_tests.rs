@@ -88,11 +88,13 @@ mod tests {
             maker: Addr::unchecked("maker"),
             taker: Addr::unchecked("taker"),
             timelocks: Timelocks {
-                withdrawal: 1000,
-                public_withdrawal: 2000,
+                dest_public_withdrawal:1000,
+                dest_withdrawal:1000,
                 dest_cancellation: 3000,
                 src_cancellation: 3000,
                 src_withdrawal: 5000,
+                src_public_cancellation:1000,
+                src_public_withdrawal:1000,
             },
             token: Coin::new(1000u32, "stake"),
         };

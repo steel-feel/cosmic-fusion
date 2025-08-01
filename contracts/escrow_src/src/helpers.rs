@@ -64,11 +64,11 @@ pub fn only_valid_secret(
 }
 
 pub fn only_after(  current_time: u64, value: u64) -> bool  {
-    value > current_time      
+    current_time + value > current_time      
 }
 
 pub fn only_before(current_time: u64, value: u64) -> bool {
-  value < current_time 
+    current_time + value < current_time 
 }
 
 

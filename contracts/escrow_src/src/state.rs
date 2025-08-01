@@ -16,11 +16,13 @@ pub struct Immutables {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct Timelocks {
-    pub withdrawal: u64,
-    pub public_withdrawal: u64,
+    pub dest_withdrawal: u64,
+    pub dest_public_withdrawal: u64,
     pub dest_cancellation: u64,
     pub src_cancellation: u64,
     pub src_withdrawal:u64,
+    pub src_public_withdrawal:u64,
+    pub src_public_cancellation : u64
 }
 
 
