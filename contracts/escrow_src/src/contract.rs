@@ -143,6 +143,7 @@ pub mod execute {
         info: MessageInfo,
         msg: WithdrawMsg,
     ) -> Result<Response, ContractError> {
+        let state = STATE.load(deps.storage)?;
         let immutables = IMMUTABLES.load(deps.storage)?;
         let current_time_in_secs = env.block.time.seconds();
 
@@ -150,11 +151,11 @@ pub mod execute {
             return Err(ContractError::OnlyTaker);
         }
 
-        if only_after(current_time_in_secs, immutables.timelocks.src_withdrawal) {
+        if only_after(current_time_in_secs,state.deployed_at+ immutables.timelocks.src_withdrawal) {
             return Err(ContractError::SrcWithrawTimeLimit);
         }
 
-        if only_before(current_time_in_secs, immutables.timelocks.src_cancellation) {
+        if only_before(current_time_in_secs, state.deployed_at+immutables.timelocks.src_cancellation) {
             return Err(ContractError::SrcCancelTimeLimit);
         }
 
@@ -171,6 +172,7 @@ pub mod execute {
         info: MessageInfo,
         msg: WithdrawToMsg,
     ) -> Result<Response, ContractError> {
+        let state = STATE.load(deps.storage)?;
         let immutables = IMMUTABLES.load(deps.storage)?;
         let current_time_in_secs = env.block.time.seconds();
 
@@ -178,11 +180,11 @@ pub mod execute {
             return Err(ContractError::OnlyTaker);
         }
 
-        if only_after(current_time_in_secs, immutables.timelocks.src_withdrawal) {
+        if only_after(current_time_in_secs, state.deployed_at+ immutables.timelocks.src_withdrawal) {
             return Err(ContractError::SrcWithrawTimeLimit);
         }
 
-        if only_before(current_time_in_secs, immutables.timelocks.src_cancellation) {
+        if only_before(current_time_in_secs, state.deployed_at+ immutables.timelocks.src_cancellation) {
             return Err(ContractError::SrcCancelTimeLimit);
         }
 
@@ -198,17 +200,18 @@ pub mod execute {
         env: Env,
         msg: WithdrawMsg,
     ) -> Result<Response, ContractError> {
+        let state = STATE.load(deps.storage)?;
         let immutables: Immutables = IMMUTABLES.load(deps.storage)?;
         let current_time_in_secs = env.block.time.seconds();
 
         if only_after(
             current_time_in_secs,
-            immutables.timelocks.src_public_withdrawal,
+            state.deployed_at+   immutables.timelocks.src_public_withdrawal,
         ) {
             return Err(ContractError::SrcWithrawTimeLimit);
         }
 
-        if only_before(current_time_in_secs, immutables.timelocks.src_cancellation) {
+        if only_before(current_time_in_secs, state.deployed_at+ immutables.timelocks.src_cancellation) {
             return Err(ContractError::SrcCancelTimeLimit);
         }
         
@@ -221,6 +224,7 @@ pub mod execute {
 
 
     pub fn cancel( deps: DepsMut, env: Env, info: MessageInfo,) -> Result<Response, ContractError>  {
+        let state = STATE.load(deps.storage)?;
         let immutables = IMMUTABLES.load(deps.storage)?;
         let current_time_in_secs = env.block.time.seconds();
      
@@ -228,7 +232,7 @@ pub mod execute {
             return Err(ContractError::OnlyTaker);
         }
 
-        if only_after(current_time_in_secs, immutables.timelocks.src_public_cancellation) {
+        if only_after(current_time_in_secs, state.deployed_at+ immutables.timelocks.src_public_cancellation) {
             return  Err(ContractError::SrcWithrawTimeLimit);
         }
 
@@ -239,10 +243,11 @@ pub mod execute {
     }  
 
     pub fn public_cancel(deps: DepsMut, env: Env)  -> Result<Response, ContractError> {
-        let immutables = IMMUTABLES.load(deps.storage)?;
+        let state = STATE.load(deps.storage)?;
+       let immutables = IMMUTABLES.load(deps.storage)?;
         let current_time_in_secs = env.block.time.seconds();
 
-        if only_after(current_time_in_secs, immutables.timelocks.src_public_cancellation) {
+        if only_after(current_time_in_secs, state.deployed_at+ immutables.timelocks.src_public_cancellation) {
             return  Err( ContractError::SrcCancelTimeLimit );
         }
 

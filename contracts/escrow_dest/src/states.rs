@@ -16,20 +16,11 @@ pub struct Immutables {
 //Values in seconds
 #[cw_serde(crate = "sylvia")]
 pub struct Timelocks {
-    pub withdrawal: u64,
-    pub public_withdrawal: u64,
+    pub dest_withdrawal: u64,
+    pub dest_public_withdrawal: u64,
     pub dest_cancellation: u64,
     pub src_cancellation: u64,
     pub src_withdrawal:u64,
-}
-
-#[cw_serde(crate = "sylvia")]
-pub enum Stage {
-    SrcWithdrawal,
-    SrcPublicWithdrawal,
-    SrcCancellation,
-    SrcPublicCancellation,
-    DstWithdrawal,
-    DstPublicWithdrawal,
-    DstCancellation,
+    pub src_public_withdrawal:u64,
+    pub src_public_cancellation : u64
 }

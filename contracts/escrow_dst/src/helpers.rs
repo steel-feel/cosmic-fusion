@@ -1,13 +1,9 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmwasm_std::{
-    to_json_binary, Addr, CosmosMsg, CustomQuery, Querier, QuerierWrapper, StdResult, WasmMsg,
-    WasmQuery,
-};
-use sha3::{ Digest,Keccak256};
+use cosmwasm_std::{to_json_binary, Addr, CosmosMsg, StdResult, WasmMsg};
 
-use crate::{msg::{ExecuteMsg, GetOrderDetailsResponse, QueryMsg}, ContractError};
+use crate::msg::ExecuteMsg;
 
 /// CwTemplateContract is a wrapper around Addr that provides a lot of helpers
 /// for working with this.
@@ -28,23 +24,19 @@ impl CwTemplateContract {
         }
         .into())
     }
+}
 
-    /// Get Count
-    pub fn get_order_details<Q, T, CQ>(&self, querier: &Q) -> StdResult<GetOrderDetailsResponse>
-    where
-        Q: Querier,
-        T: Into<String>,
-        CQ: CustomQuery,
-    {
-        let msg = QueryMsg::OrderDetails {  };
-        let query = WasmQuery::Smart {
-            contract_addr: self.addr().into(),
-            msg: to_json_binary(&msg)?,
-        }
-        .into();
-        let res: GetOrderDetailsResponse= QuerierWrapper::<CQ>::new(querier).query(&query)?;
-        Ok(res)
-    }
+
+
+use crate::error::ContractError;
+use sha3::{Digest, Keccak256};
+
+pub fn only_after(  current_time: u64, value: u64) -> bool  {
+     value > current_time      
+}
+
+pub fn only_before(current_time: u64, value: u64) -> bool {
+   value < current_time 
 }
 
 pub fn only_valid_secret(
@@ -62,13 +54,3 @@ pub fn only_valid_secret(
 
     Ok(())
 }
-
-pub fn only_after(  current_time: u64, value: u64) -> bool  {
-     value > current_time      
-}
-
-pub fn only_before(current_time: u64, value: u64) -> bool {
-     value < current_time 
-}
-
-

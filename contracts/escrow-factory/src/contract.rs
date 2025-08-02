@@ -54,12 +54,13 @@ pub mod execute {
     ) -> Result<Response, ContractError> {
         //check if order already proccessed
         let state = STATE.load(deps.storage)?;
-        let is_order_processed = COMPLETED_ORDERS
-            .may_load(deps.storage, msg.order_hash.clone())
-            .unwrap()
-            .unwrap();
-        if is_order_processed == true {
-            return Err(ContractError::OrderAlreadyProcessed);
+        match  COMPLETED_ORDERS.may_load(deps.storage, msg.order_hash.clone()).unwrap() {
+            Some(val) => {
+                if val == true {
+                    return Err(ContractError::OrderAlreadyProcessed);
+                }
+            }
+            None => {}
         }
 
         //check if send funds match the order details
@@ -101,15 +102,16 @@ pub mod execute {
             id: ESCROW_DEPLOY_REPLY, // assign an ID to catch the reply
             reply_on: ReplyOn::Always,
         };
+        let event = Event::new("escrow_contract").add_attribute("order_hash", escrow_init_playload_msg.order_hash);
 
         COMPLETED_ORDERS.save(deps.storage, msg.order_hash.clone(), &true)?;
 
-        Ok(Response::new().add_submessage(submsg))
+        Ok(Response::new().add_submessage(submsg).add_event(event))
     }
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
+pub fn reply(_deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
     match msg.id {
         ESCROW_DEPLOY_REPLY => {
             if msg.result.is_err() {

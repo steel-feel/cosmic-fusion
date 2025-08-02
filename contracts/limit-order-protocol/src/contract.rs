@@ -1,6 +1,5 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{from_json, to_json_binary, Event, Reply, ReplyOn, SubMsg, WasmMsg,entry_point, Binary, Deps, DepsMut, Env, MessageInfo, Response,  StdResult, };
-use cw_utils::{parse_instantiate_response_data};
 
 use crate::error::ContractError;
 use crate::msg::{EscrowInstantiateMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
@@ -71,10 +70,16 @@ pub mod execute {
         _info: MessageInfo,
         msg: FillOrderMsg,
     ) -> Result<Response, ContractError> {
-        let is_order_processed = COMPLETED_ORDERS.may_load(deps.storage, msg.immutables.order_hash.clone()).unwrap().unwrap();
-        if is_order_processed == true {
-            return Err(ContractError::OrderAlreadyProcessed);
-        }
+        match COMPLETED_ORDERS.may_load(deps.storage, msg.immutables.order_hash.clone()).unwrap() {
+            Some(v) =>  {
+                if v == true {
+                    return Err(ContractError::OrderAlreadyProcessed);
+                }
+            }
+            None => {}
+
+        };
+       
         let block_time = env.block.time.seconds();
 
         if block_time < msg.auction_params.start_time {
@@ -94,7 +99,7 @@ pub mod execute {
         )?;
 
         // Check if current price agreed by taker
-        if current_price > msg.taker_traits.threshold_taking_price {
+        if current_price <= msg.taker_traits.threshold_taking_price {
             return Err(ContractError::PriceIsAboveThreshold);
         }
          //Pull funds from maker to LOP
@@ -248,20 +253,15 @@ pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractE
                 id: ESCROW_DEPLOY_REPLY, // assign an ID to catch the reply
                 reply_on: ReplyOn::Always,
             };
-
-            Ok(Response::new().add_submessage(submsg))
+            let event = Event::new("escrow_contract").add_attribute("order_hash", escrow_init_msg.order_hash);
+            Ok(Response::new().add_submessage(submsg).add_event(event))
         }
 
         ESCROW_DEPLOY_REPLY => {
             if msg.result.is_err() {
                 return Err(ContractError::EscrowContractError);
             }
-
-            let init_res = parse_instantiate_response_data(msg.payload.as_slice()).unwrap();
-
-            let event = Event::new("escrow_contract")
-                .add_attribute("contract_address", init_res.contract_address);
-            Ok(Response::new().add_event(event))
+            Ok(Response::new())
         }
         _ => Ok(Response::new()),
     }

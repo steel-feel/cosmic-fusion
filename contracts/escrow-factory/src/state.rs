@@ -9,4 +9,3 @@ pub struct State {
 }
 
 pub const STATE: Item<State> = Item::new("state");
-

@@ -93,6 +93,7 @@ where
                 token: data.token,
             },
         )?;
+
         Ok(Response::new())
     }
 
@@ -108,7 +109,7 @@ where
         }
         // Check timelock conditions
         let current_time_in_secs = ctx.env.block.time.seconds();
-        if only_after(current_time_in_secs, deployed_at + immutables.timelocks.withdrawal) {
+        if only_after(current_time_in_secs, deployed_at + immutables.timelocks.dest_withdrawal) {
             return Err(ContractError::DestWithrawTimeLimit);
         }
         if only_before(current_time_in_secs, deployed_at + immutables.timelocks.dest_cancellation) {
@@ -138,7 +139,7 @@ where
         // Check timelock conditions
         let current_time_in_secs = ctx.env.block.time.seconds();
 
-        if only_after(current_time_in_secs, deployed_at + immutables.timelocks.public_withdrawal) {
+        if only_after(current_time_in_secs, deployed_at + immutables.timelocks.dest_public_withdrawal) {
             return Err(ContractError::DestWithrawTimeLimit);
         }
 
@@ -294,11 +295,13 @@ mod tests {
             maker: Addr::unchecked("maker"),
             taker: Addr::unchecked("taker"),
             timelocks: Timelocks {
-                withdrawal: 1,
-                public_withdrawal: 2,
-                dest_cancellation: 3,
+                dest_withdrawal : 7,
+                dest_public_withdrawal: 1,
+                dest_cancellation: 2,
+                src_withdrawal: 3,
                 src_cancellation: 4,
-                src_withdrawal: 5,
+                src_public_withdrawal: 5,
+                src_public_cancellation : 6
             },
             token: Coin::new(1000u32, "stake"),
         };
@@ -344,11 +347,13 @@ mod tests {
             maker: Addr::unchecked("maker"),
             taker: Addr::unchecked("taker"),
             timelocks: Timelocks {
-                withdrawal: 1000,
-                public_withdrawal: 2000,
+                dest_withdrawal: 1000,
+                dest_public_withdrawal: 2000,
                 dest_cancellation: 3000,
                 src_cancellation: 4000,
                 src_withdrawal: 5000,
+                src_public_withdrawal : 123,
+                src_public_cancellation : 231
             },
             token: Coin::new(1000u32, "stake"),
         };
@@ -401,11 +406,13 @@ mod tests {
             maker: Addr::unchecked("maker"),
             taker: Addr::unchecked("taker"),
             timelocks: Timelocks {
-                withdrawal: 1000,
-                public_withdrawal: 2000,
+                dest_withdrawal: 1000,
+                dest_public_withdrawal: 2000,
                 dest_cancellation: 3000,
                 src_cancellation: 4000,
                 src_withdrawal: 5000,
+                src_public_withdrawal : 123,
+                src_public_cancellation : 231
             },
             token: Coin::new(1000u32, "stake"),
         };
@@ -458,11 +465,13 @@ mod tests {
             maker: Addr::unchecked("maker"),
             taker: Addr::unchecked("taker"),
             timelocks: Timelocks {
-                withdrawal: 1000,
-                public_withdrawal: 2000,
-                dest_cancellation: 1753880620,
+                dest_withdrawal: 1000,
+                dest_public_withdrawal: 2000,
+                dest_cancellation: 1447,
                 src_cancellation: 3000,
                 src_withdrawal: 5000,
+                src_public_withdrawal : 123,
+                src_public_cancellation : 231
             },
             token: Coin::new(1000u32, "stake"),
         };
@@ -504,11 +513,13 @@ mod tests {
             maker: Addr::unchecked("maker"),
             taker: Addr::unchecked("taker"),
             timelocks: Timelocks {
-                withdrawal: 1000,
-                public_withdrawal: 2000,
+                dest_withdrawal: 1000,
+                dest_public_withdrawal: 2000,
                 dest_cancellation: 3000,
                 src_cancellation: 3000,
                 src_withdrawal: 5000,
+                src_public_withdrawal : 123,
+                src_public_cancellation : 231
             },
             token: Coin::new(1000u32, "stake"),
         };
@@ -561,11 +572,13 @@ mod tests {
             maker: Addr::unchecked("maker"),
             taker: Addr::unchecked("taker"),
             timelocks: Timelocks {
-                withdrawal: 1000,
-                public_withdrawal: 2000,
+                dest_withdrawal: 1000,
+                dest_public_withdrawal: 2000,
                 dest_cancellation: 3000,
                 src_cancellation: 3000,
                 src_withdrawal: 5000,
+                src_public_withdrawal : 123,
+                src_public_cancellation : 231
             },
             token: Coin::new(1000u32, "stake"),
         };
@@ -617,11 +630,13 @@ mod tests {
             maker: Addr::unchecked("maker"),
             taker: Addr::unchecked("taker"),
             timelocks: Timelocks {
-                withdrawal: 1000,
-                public_withdrawal: 2000,
+                dest_withdrawal: 1000,
+                dest_public_withdrawal: 2000,
                 dest_cancellation: 3000,
                 src_cancellation: 3000,
                 src_withdrawal: 5000,
+                src_public_withdrawal : 123,
+                src_public_cancellation : 231
             },
             token: Coin::new(1000u32, "stake"),
         };
