@@ -47,6 +47,7 @@ serde = { version = "1.0.197", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.58" }
 injective-std = "1.14.1"
 prost = { version = "0.13.4", features = [ "prost-derive" ] }
+cw-utils = { version = "3.0.0" }
 
 [dev-dependencies]
 cw-multi-test = "2.0.0"

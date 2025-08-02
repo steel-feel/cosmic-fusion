@@ -9,5 +9,12 @@ pub enum ContractError {
     #[error("Unauthorized")]
     Unauthorized {},
     // Add any other custom errors you like here.
-    // Look at https://docs.rs/thiserror/1.0.21/thiserror/ for details.
+    #[error("Unable to create escrow contract")]
+    EscrowContractError,
+
+    #[error("Order already processed")]
+    OrderAlreadyProcessed,
+
+    #[error("Denom/Amount does not match")]
+    UnmatchedDenomOrAmount,
 }
