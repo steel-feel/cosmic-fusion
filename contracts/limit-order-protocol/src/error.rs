@@ -22,7 +22,11 @@ pub enum ContractError {
     PullFundsError,
 
     #[error("Unable to create escrow contract")]
-    EscrowContractError
+    EscrowContractError,
+
+    #[error("Order already processed")]
+    OrderAlreadyProcessed
+
 
 
     // Add any other custom errors you like here.

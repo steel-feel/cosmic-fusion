@@ -1,13 +1,9 @@
 #[cfg(not(feature = "library"))]
-use cosmwasm_std::{
-    entry_point, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult, Timestamp,
-    Uint128,
-};
-use cosmwasm_std::{from_json, to_json_binary, Event, Reply, ReplyOn, SubMsg, WasmMsg};
-use cw_utils::{parse_instantiate_response_data, ParseReplyError};
+use cosmwasm_std::{from_json, to_json_binary, Event, Reply, ReplyOn, SubMsg, WasmMsg,entry_point, Binary, Deps, DepsMut, Env, MessageInfo, Response,  StdResult, };
+use cw_utils::{parse_instantiate_response_data};
 
 use crate::error::ContractError;
-use crate::msg::{self, EscrowInstantiateMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::{EscrowInstantiateMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::{State, COMPLETED_ORDERS, STATE};
 
 pub const PULL_REPLY: u64 = 1;
@@ -49,14 +45,13 @@ pub fn execute(
 pub mod execute {
     use super::*;
     use crate::msg::{AuctionParameters, EscrowInstantiateMsg, FillOrderMsg};
-    use crate::state::STATE;
     use crate::{
         error::ContractError,
         helpers::{create_stargate_msg, encode_bytes_message},
     };
     use cosmwasm_std::{
         to_json_binary, Addr, Coin, DepsMut, Env, MessageInfo, Response, StdResult, SubMsg,
-        Uint128, WasmMsg,
+        Uint128,
     };
     use injective_std::{
         shim::Any,
@@ -73,9 +68,13 @@ pub mod execute {
     pub fn fill_order(
         deps: DepsMut,
         env: Env,
-        info: MessageInfo,
+        _info: MessageInfo,
         msg: FillOrderMsg,
     ) -> Result<Response, ContractError> {
+        let is_order_processed = COMPLETED_ORDERS.may_load(deps.storage, msg.immutables.order_hash.clone()).unwrap().unwrap();
+        if is_order_processed == true {
+            return Err(ContractError::OrderAlreadyProcessed);
+        }
         let block_time = env.block.time.seconds();
 
         if block_time < msg.auction_params.start_time {
@@ -98,17 +97,17 @@ pub mod execute {
         if current_price > msg.taker_traits.threshold_taking_price {
             return Err(ContractError::PriceIsAboveThreshold);
         }
-
+         //Pull funds from maker to LOP
         let proto_amount = ProtoCoin {
             amount: current_price.to_string(),
             denom: msg.making_amount.denom.clone(),
         };
 
-        let escrow_init_msg = EscrowInstantiateMsg {
+        let escrow_playload_msg = EscrowInstantiateMsg {
             hashlock: msg.immutables.hashlock,
             maker: msg.immutables.maker.clone(),
             taker: msg.immutables.taker,
-            order_hash: msg.immutables.order_hash,
+            order_hash: msg.immutables.order_hash.clone(),
             rescue_delay: msg.immutables.rescue_delay,
             timelocks: msg.immutables.timelocks,
             token: Coin {
@@ -117,13 +116,12 @@ pub mod execute {
             },
         };
 
-        //Pull funds from maker to LOP
         let pull_sub_msg = pull_funds(proto_amount, msg.immutables.maker, env.contract.address);
 
-        // pull_sub_msg.with_payload(payload);
+        COMPLETED_ORDERS.save(deps.storage, msg.immutables.order_hash.clone(), &true)?;
 
         Ok(Response::new()
-            .add_submessage(pull_sub_msg.with_payload(to_json_binary(&escrow_init_msg)?)))
+            .add_submessage(pull_sub_msg.with_payload(to_json_binary(&escrow_playload_msg)?)))
     }
 
     fn pull_funds(token: ProtoCoin, from_address: Addr, to_address: Addr) -> SubMsg {
