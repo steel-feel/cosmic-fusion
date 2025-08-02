@@ -102,7 +102,7 @@ pub mod execute {
         _info: MessageInfo,
         msg: PullFundsMsg,
     ) -> Result<Response, ContractError> {
-        let mut state = STATE.load(deps.storage)?;
+        let mut state: State = STATE.load(deps.storage)?;
         state.deployed_at = _env.block.time.seconds();
 
         let giver = msg.from;
@@ -259,6 +259,7 @@ pub mod execute {
             to_address: target.into(),
             amount: vec![amount],
         };
+
         SubMsg::reply_on_error(msg, REPLY_WITHDRAW_ERR)
     }
 }
