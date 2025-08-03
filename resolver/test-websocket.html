@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test Client</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .panel {
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .message-log {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f8f9fa;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        input, button {
+            margin: 5px 0;
+            padding: 8px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebSocket Test Client</h1>
+    
+    <div class="status" id="status">Connecting...</div>
+    
+    <div class="container">
+        <div class="panel">
+            <h3>Connection</h3>
+            <button id="connectBtn">Connect</button>
+            <button id="disconnectBtn" disabled>Disconnect</button>
+            <button id="pingBtn" disabled>Send Ping</button>
+            
+            <h3>Message Types</h3>
+            <div>
+                <input type="text" id="messageInput" placeholder="Enter message">
+                <button id="sendBtn" disabled>Send Echo</button>
+            </div>
+            
+            <div>
+                <input type="text" id="broadcastInput" placeholder="Broadcast message">
+                <button id="broadcastBtn" disabled>Broadcast</button>
+            </div>
+            
+            <div>
+                <input type="text" id="targetClient" placeholder="Target client ID">
+                <input type="text" id="privateInput" placeholder="Private message">
+                <button id="privateBtn" disabled>Send Private</button>
+            </div>
+            
+            <button id="getClientsBtn" disabled>Get Connected Clients</button>
+        </div>
+        
+        <div class="panel">
+            <h3>Message Log</h3>
+            <div class="message-log" id="messageLog"></div>
+            <button id="clearLogBtn">Clear Log</button>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let clientId = null;
+
+        const statusDiv = document.getElementById('status');
+        const messageLog = document.getElementById('messageLog');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const pingBtn = document.getElementById('pingBtn');
+        const sendBtn = document.getElementById('sendBtn');
+        const broadcastBtn = document.getElementById('broadcastBtn');
+        const privateBtn = document.getElementById('privateBtn');
+        const getClientsBtn = document.getElementById('getClientsBtn');
+        const clearLogBtn = document.getElementById('clearLogBtn');
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            messageLog.innerHTML += `[${timestamp}] ${message}\n`;
+            messageLog.scrollTop = messageLog.scrollHeight;
+        }
+
+        function updateStatus(connected) {
+            if (connected) {
+                statusDiv.textContent = `Connected (Client ID: ${clientId})`;
+                statusDiv.className = 'status connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                pingBtn.disabled = false;
+                sendBtn.disabled = false;
+                broadcastBtn.disabled = false;
+                privateBtn.disabled = false;
+                getClientsBtn.disabled = false;
+            } else {
+                statusDiv.textContent = 'Disconnected';
+                statusDiv.className = 'status disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                pingBtn.disabled = true;
+                sendBtn.disabled = true;
+                broadcastBtn.disabled = true;
+                privateBtn.disabled = true;
+                getClientsBtn.disabled = true;
+            }
+        }
+
+        function connect() {
+            ws = new WebSocket('ws://localhost:3000');
+            
+            ws.onopen = function() {
+                log('Connected to WebSocket server');
+            };
+            
+            ws.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                log(`Received: ${JSON.stringify(message, null, 2)}`);
+                
+                if (message.type === 'connection') {
+                    clientId = message.data.clientId;
+                    updateStatus(true);
+                }
+            };
+            
+            ws.onclose = function() {
+                log('Disconnected from WebSocket server');
+                updateStatus(false);
+                ws = null;
+                clientId = null;
+            };
+            
+            ws.onerror = function(error) {
+                log(`WebSocket error: ${error}`);
+            };
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+            }
+        }
+
+        function sendMessage(type, data) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const message = {
+                    type: type,
+                    data: data,
+                    timestamp: Date.now()
+                };
+                ws.send(JSON.stringify(message));
+                log(`Sent: ${JSON.stringify(message, null, 2)}`);
+            }
+        }
+
+        // Event listeners
+        connectBtn.addEventListener('click', connect);
+        disconnectBtn.addEventListener('click', disconnect);
+        
+        pingBtn.addEventListener('click', () => {
+            sendMessage('ping', {});
+        });
+        
+        sendBtn.addEventListener('click', () => {
+            const message = document.getElementById('messageInput').value;
+            if (message) {
+                sendMessage('echo', { message: message });
+                document.getElementById('messageInput').value = '';
+            }
+        });
+        
+        broadcastBtn.addEventListener('click', () => {
+            const message = document.getElementById('broadcastInput').value;
+            if (message) {
+                sendMessage('broadcast', { message: message });
+                document.getElementById('broadcastInput').value = '';
+            }
+        });
+        
+        privateBtn.addEventListener('click', () => {
+            const targetId = document.getElementById('targetClient').value;
+            const message = document.getElementById('privateInput').value;
+            if (targetId && message) {
+                sendMessage('private', { 
+                    targetClientId: targetId, 
+                    message: message 
+                });
+                document.getElementById('privateInput').value = '';
+            }
+        });
+        
+        getClientsBtn.addEventListener('click', () => {
+            sendMessage('get_clients', {});
+        });
+        
+        clearLogBtn.addEventListener('click', () => {
+            messageLog.innerHTML = '';
+        });
+
+        // Auto-connect on page load
+        connect();
+    </script>
+</body>
+</html> 

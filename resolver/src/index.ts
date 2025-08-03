@@ -99,33 +99,10 @@ export class WebSocketClient extends EventEmitter {
  */
 async function main() {
     // Replace with your actual WebSocket server URL
-    const wsUrl = "https://echo.websocket.org/"; 
+    const wsUrl = Bun.env.RELAYER_URL; 
 
     // Create a new client instance
     const client = new WebSocketClient(wsUrl);
-
-    // // Register custom event handlers
-    // client.on("open", () => {
-    //     console.log("Custom 'open' handler: Ready to send messages!");
-    //     // Send a message after the connection is open
-    //     const messageToSend = "Hello from Bun!";
-    //     console.log(`Sending message: "${messageToSend}"`);
-    //     client.sendMessage(messageToSend);
-    // });
-
-    // client.on("message", (data: WebSocketMessage) => {
-    //     console.log(`Custom 'message' handler: Echoed message received: ${data.toString()}`);
-    //     // Disconnect after receiving the first message
-    //     client.disconnect();
-    // });
-
-    // client.on("close", (event: WebSocket.CloseEvent) => {
-    //     console.log("Custom 'close' handler: Connection has been closed.");
-    // });
-
-    // client.on("error", (error: Error) => {
-    //     console.error("Custom 'error' handler: An error occurred.");
-    // });
     
     // Attempt to connect to the server
     client.connect();
