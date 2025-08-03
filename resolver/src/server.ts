@@ -1,4 +1,5 @@
 import { Server } from "bun";
+import { deployEscrows } from "./mocks/cosmos_src_flow";
 
 interface WebSocketMessage {
   type: string;
@@ -89,7 +90,7 @@ class WebSocketServer {
     return null;
   }
 
-  private handleMessage(ws: any, message: string | Buffer) {
+  private async handleMessage(ws: any, message: string | Buffer) {
     try {
       let parsedMessage: WebSocketMessage;
       
@@ -111,6 +112,24 @@ class WebSocketServer {
             timestamp: Date.now(),
           });
           break;
+        
+        case "order" : {
+          //call cosmos
+         await deployEscrows();
+
+          this.sendMessage(ws, {
+            type: "order_status",
+            data: { timestamp: Date.now() },
+            timestamp: Date.now(),
+          });
+
+          
+
+
+
+
+        }
+        break
 
         case "broadcast":
           // Broadcast message to all connected clients

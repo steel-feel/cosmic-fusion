@@ -9,15 +9,15 @@ import { Decimal } from "@cosmjs/math";
 export class CosmosManager {
     private wasmSigner: SigningCosmWasmClient
     private wallet: DirectSecp256k1HdWallet;
-    private cosmosClient :any;
+    private cosmosClient: any;
     private address: string;
 
     constructor() {
-     
+
     }
 
     async init() {
-        const mnemonic = Bun.env.SEED_PHRASE || ""
+        const mnemonic = Bun.env.XION_RELAYER || ""
         this.wallet = await DirectSecp256k1HdWallet.fromMnemonic(mnemonic, {
             prefix: "xion",
         });
@@ -25,17 +25,18 @@ export class CosmosManager {
         this.address = walletAccount[0].address
         console.log(`Address is ${this.address}`);
 
-        
+
         this.cosmosClient = await getSigningCosmosClient({ rpcEndpoint: Bun.env.RPC_URL || "", signer: this.wallet })
-      
+
         this.wasmSigner = await SigningCosmWasmClient.connectWithSigner(Bun.env.RPC_URL || "", this.wallet, {
-            gasPrice : { amount : Decimal.fromUserInput("0",1)   , denom : "stake" }
+            gasPrice: { amount: Decimal.fromUserInput("0.01", 2), denom: "uxion" },
         })
+
     }
 
-    async deployDstEscrow( deployParams : any  ) {
+    async deployDstEscrow(deployParams: any) {
         console.log(`Using ${this.address} wallet`);
-        
+
         const contractInstance = new contracts.EscrowFactory.EscrowFactoryClient(this.wasmSigner, this.address, Bun.env.XION_DEST_FACTORY_ADDRESS || "")
         /*
          deployParams : {
@@ -58,33 +59,52 @@ export class CosmosManager {
         }
         */
 
-        const result =  await contractInstance.deployEscrow(deployParams,"auto","",[deployParams.token]  )  
-        let escrowAddr =""
-        for (let e of result.events ) {
-                    if (e.type == "instantiate") {
-                        escrowAddr =  e?.attributes[0]?.value
-                        console.log(  e );
-                    }   
+        const result = await contractInstance.deployEscrow(deployParams, "auto", "", [deployParams.token])
+        let escrowAddr = ""
+        for (let e of result.events) {
+            if (e.type == "instantiate") {
+                escrowAddr = e?.attributes[0]?.value
+                console.log(e);
             }
-        console.log(`📝 Escrow contract ${escrowAddr}`);
-            
+        }
+        console.log(`📝 DESTINATION Escrow contract XION ${escrowAddr}`);
+
         return escrowAddr
     }
 
-    async withdrawMaker(escrowAddr:string,secret:string) {
+    async withdrawMaker(escrowAddr: string, secret: string) {
         const contractInstance = new contracts.EscrowDst.EscrowDstClient(this.wasmSigner, this.address, escrowAddr || "")
+        const result = await contractInstance.withdraw({ secret })
+        console.log({ result });
+    }
+
+
+    async deploySrcEscrow(order:any) {
+        const contractInstance = new contracts.LimitOrderProtocol.LimitOrderProtocolClient(this.wasmSigner, this.address, Bun.env.XION_LOP_ADDRESS || "")
+        const result =await contractInstance.fillOrder(order , "auto" )
+        const escrowAddr = this.fetchEscrowAddress(result.events)
+        console.log(`📝 SRC Escrow contract at XION ${escrowAddr}`);
+
+        return escrowAddr
+    }
+
+    fetchEscrowAddress(events: any[]) {
+        let escrowAddr = ""
+        for (let e of events) {
+            if (e.type == "instantiate") {
+                escrowAddr = e?.attributes[0]?.value
+                // console.log(e);
+            }
+        }
+        return escrowAddr
+    }
+
+    async withdrawTaker(escrowAddr: string, secret: string) {
+        const contractInstance = new contracts.EscrowSrc.EscrowSrcClient(this.wasmSigner, this.address, escrowAddr || "")
         const result = await contractInstance.withdraw({secret})
-        console.log({result});
     }
 
-
-    async deploySrcEscrow() {
-
-    }
-
-    async withdrawTaker() {
-
-    }
+   
 
 
 
